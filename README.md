@@ -14,3 +14,9 @@ types | description
 `path` | like `string` but also accepts slash
 `uuid` | accepts UUID strings
 
+
+
+
+### For tutoring application
+The reference page is http://flask.pocoo.org/docs/1.0/tutorial/
+*This tutorial will walk you through creating a basic blog application called Flaskr.*
