@@ -20,7 +20,7 @@
 5. **@app.route()** creates a simple route so you can see the application working before getting into the rest of tutorial. it creates a connection between the URL `/hello` and a function that returns a responsem the string `'Hello, World!'` in this case.
 
 
-#####To Run the application#####
+##### To Run the application #####
 `export FLASK_APP=flaskr`
 `export FLASK_ENV=development`
 `flask run`
@@ -28,13 +28,13 @@
 
 ### db.py ###
 1. **g** is a special object that is unique for each request. It is used to store data that might be accessed by multiple functions during the request. The connection is stored and reused instead of creating a new connection if `get_db` is called a second time in the same request.
-2. ##current_app## is another special object that points to the Flask application handling the request. Since you used an application factory, there is no application object when writing the rest of your code. `get_db` will be called when the application has been created and is handling a request, so ##current_app## can be used.
-3. ##sqlite3.connect()## establishes a connection to the file pointed at by the `DATABASE` configuration key. This file doesn't have to exist yet, and won't until you initialize the database later.
-4. ##sqlite3.Row## tells the connection to return rows that behave list dicts. This allows accessing the columns by name.
+2. **current_app** is another special object that points to the Flask application handling the request. Since you used an application factory, there is no application object when writing the rest of your code. `get_db` will be called when the application has been created and is handling a request, so **current_app** can be used.
+3. **sqlite3.connect()** establishes a connection to the file pointed at by the `DATABASE` configuration key. This file doesn't have to exist yet, and won't until you initialize the database later.
+4. **sqlite3.Row** tells the connection to return rows that behave list dicts. This allows accessing the columns by name.
 5. `close_db` checks if a connection was created by checking if `g.db` was set. If the connection exists, it is closed. Further down you will tell your application about the `close_db` function in the application factory so that it is called after each request.
 
-6. ##open_resource()## opens a file relative to the `flaskr` packages, which is useful since you won't necessarily know where that location is when deploying the application later. `get_db` returns a database connection, which is used to execute the commands read from the file.
-7. ##click.command()## defines a command line command called `init-db` that calls the `init_db` function and shows a success message to the user. Here is more about writing commands: http://flask.pocoo.org/docs/1.0/cli/#cli
+6. **open_resource()** opens a file relative to the `flaskr` packages, which is useful since you won't necessarily know where that location is when deploying the application later. `get_db` returns a database connection, which is used to execute the commands read from the file.
+7. **click.command()** defines a command line command called `init-db` that calls the `init_db` function and shows a success message to the user. Here is more about writing commands: http://flask.pocoo.org/docs/1.0/cli/#cli
 
 
 ### auth.py ###
@@ -54,7 +54,7 @@ Flaskr will have 2 blueprints, one for authentication functions and one for the 
 
 5. Validate that `username` is not already registered by querying the database and cheking if a result is returned. **db.execute** takes a SQL query with `?` placeholders for any user input, and a tuple of values to replace the placeholders with. The database library will take care of escaping the values so you are not vulnerable to a *SQL injection attack*.
 
-**fetchone()** returns one row from the query. If the query returned no results, it returns None. Later, **fetchall()** is used, which returns a list of all results.
+    **fetchone()** returns one row from the query. If the query returned no results, it returns None. Later, **fetchall()** is used, which returns a list of all results.
 
 6. If validation succeeds, insert the new user data into the database. For securiity, passwords should never be stored in the database directly. Instead, **generate_password_hash()** is used to securely hash the password, and that hash is stored. Since this query modifies data, **db.commit()** needs to be called afterwards to save the changes.
 
@@ -73,13 +73,13 @@ Flaskr will have 2 blueprints, one for authentication functions and one for the 
 **bp.before_app_request()** registers a function that runs before the view function, no matter what URL is requested.
 `load_logged_in_user` checks if a user id is stored in the **session** and gets that user's data from the database, storing it on **g.user**, which lasts for the length of the request. If there is no user id, or if the id doesn't exist, `g.user` will be `None`.
 
-####Logout####
+#### Logout ####
 To log out, you need to remove the user id from the **session**. The `load_logged_in_user` won't load a user on subsequent requests.
 
-####Require Authentication in Other Views####
+#### Require Authentication in Other Views ####
 Creating, editing, and deleting blog posts will require a user to be logged in. A *decorator* can be used to check this for each view it's applied to.
 
-####Endpoints and URLs####
+#### Endpoints and URLs ####
 The **url_for()** function generates the URL to a view based on a name and arguments. The name associated with a view is also called the *endpoint*, and by defauly it's the same as the name of the view function.
 
 For example, the `hello()` view that was added to the app factory earlier in the tutorial has the name `'hello'` and can be linked to with `url_for('hello')`. If it took an argument, which you'll see later, it would be linked to using `url_for('hello', who='World')`.
