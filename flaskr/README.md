@@ -1,4 +1,4 @@
-# flaskr
+# flaskr #
 
 ## Notes of ***flaskr*** application ##
 
@@ -21,12 +21,21 @@
 
 
 ##### To Run the application #####
-`export FLASK_APP=flaskr`
-`export FLASK_ENV=development`
+`export FLASK_APP=flaskr` 
+
+`export FLASK_ENV=development` 
+
 `flask run`
+
+And visit http://127.0.0.1:5000/hello
 
 
 ### db.py ###
+The first thing to do when working with a database is to create a connection to it. Any queries and operations are performed using the connection, which is closed after the work is finished.
+
+In web application this connection is typically tied to the request. It is created at some point when handling a request, and closed before the response is sent.
+
+
 1. **g** is a special object that is unique for each request. It is used to store data that might be accessed by multiple functions during the request. The connection is stored and reused instead of creating a new connection if `get_db` is called a second time in the same request.
 2. **current_app** is another special object that points to the Flask application handling the request. Since you used an application factory, there is no application object when writing the rest of your code. `get_db` will be called when the application has been created and is handling a request, so **current_app** can be used.
 3. **sqlite3.connect()** establishes a connection to the file pointed at by the `DATABASE` configuration key. This file doesn't have to exist yet, and won't until you initialize the database later.
@@ -36,7 +45,7 @@
 6. **open_resource()** opens a file relative to the `flaskr` packages, which is useful since you won't necessarily know where that location is when deploying the application later. `get_db` returns a database connection, which is used to execute the commands read from the file.
 7. **click.command()** defines a command line command called `init-db` that calls the `init_db` function and shows a success message to the user. Here is more about writing commands: http://flask.pocoo.org/docs/1.0/cli/#cli
 
-
+## The auth Blueprint ##
 ### auth.py ###
 A view function is the code you write to respond to requests to your applications.
 Flask uses patterns to match the incoming request URL to the view that should handle it. The view returns data that Flask turns into an outgoing response. Flask can also go the other direction and generate a URL to a view based on its name and arguments.
@@ -86,6 +95,85 @@ For example, the `hello()` view that was added to the app factory earlier in the
 
 When using a bluepring, the name of the blueprint is prepended to the name of the function, so the endpoint for the `login` function you wrote above is `'auth.login'` because you added it to the `'auth'` blueprint.
 
+## Blog Blueprint ##
 
+You'll use the same techniques you learned about when writing the authentication lueprint to write the blog blueprint. 
+The blog should list all posts, allow logged in users to create posts, and allow the author of a post to edit or 
+delete it.
 
+As you implement each view, keep the development server running. As you save your changes, try going to the 
+URL in your browser and testing them out.
 
+### The Blueprint ###
+
+Define the blueprint and register it in the application factory.
+
+Import and register the blueprint from the factory using **app.register_blueprint()**. Place the new code at the 
+end of the factory function before returning the app.
+
+Unlike the auth blueprint, the blog blueprint does not have a `url_prefix`. So the `index` view will be at `/`, the 
+`create` biew at `/create`, and so on. The blog is the main feature of Flaskr, so it makes sense that the blog index 
+will be main index.
+
+Howev er, the endpoint for the `index` view defined below will be `blog.index`. Some of the authentication views referred 
+to a plain index endpoint. **app.add_url_rule()** associates theendpoint name `index` with the `/` url so that 
+`url_for('index')` or `url_for('blog.index')` will both workd, generating the same `/` URL either way.
+
+In another application you might give the blog blueprint a `url_prefix` and define a separate `index` view in the application
+factory, similar to the `hello` view. Then the `index` and `blog.index` endpoints and URLs would be different.
+
+### Index ###
+
+The index will show all of the posts, most recent first. A `JOIN` is used so that the author indormation from the `user` 
+table is available in the result.
+
+When a user is logged in, the `header` block adds a link to the `create` view. When the user is the author of a post,
+they'll see an "Edit" link to the `update` view for that post. `loop.last` is a special variable available inside Jinja for 
+loops. It's used to display a line after each post except the last one, to visually separate them.
+
+### Create ###
+
+The `create` view works the same as the auth `register` view. Either the form is displayed, or the posted data is validated 
+and the post is added to the database or an error is shown.
+
+The `login_required` decorator you wrote earlier is used on the blog views. A user must be logged in to visit these 
+views, otherwise they will be redirected to the login page.
+
+### Update ###
+
+Both the `update` and `delete` views will need to fetch a `post` by `id` and check if the author matches the logged in 
+user. To avoid duplicating code, you can write a function to get the `post` and call it from each view.
+
+**abort()** will raise a special exception that returns an HTTP status code. It takes an optional message to show with 
+the error, otherwise a default message is used. `404` means "Not Found", and `403` means "Forbidden". (`401` means 
+"Unauthorized", but you redirect to the login page instead of returning the status.)
+
+The `check_author` argument is defined so that the function can be used to get a `post` without checking the author. 
+This would be useful if you wrote a view to hsow an individual post on a page, where the user doesn't matter because 
+they're not modifying the post.
+
+#### Update Template ####
+Unlike the views you've written so far, the `update` function takes an argument, `id`. That corresponds to the 
+`<int:id>` in the route. A real URL will look like `/1/update`. Flask will capture the `1`, ensure it's an **int**, and pass it 
+as the `id` argument. If you don't specify `int:` and instead do `<id>`, it will be a string. To generate a URL to the update 
+page, **url_for()** needs to be passed the `id` so it knows what to fill in: `url_for('blog.update', id=post['od'])`. 
+This is also in the `index.html` file above.
+
+The `create` and `update` views look very similar. The main difference is that the `update` view uses a `post` object and 
+and `UPDATE` query instead of an `Insert`. With some clever refactoring, you could use one view and template for both 
+actions, but for the tutorial it's clearer to keep them separate.
+
+This template has two forms. THe first posts the edited data to the current page (`/<id>/update`). The other form 
+contains only a button and specifies an `action` attribute that posts to the delete view instead. The button uses 
+some JavaScript to show a confirmation dialog before submitting.
+
+The pattern `{{ request.form['title'] or post['title'] }}` is used to choose what data appears in the form. 
+When the form hasn't been submitted, the original `post` data appears, but if invalid form data was posted you 
+want to display that so the user can fix the error, so `request.form` is used instead. **request** is another variable 
+that's automatically acailable in templates.
+
+### Delete ###
+
+The delete view doesn't have its own template, the delete button is part of `update.html` and posts to the 
+`<id>/delete` URL. Since there is no template, it will only handle the `POST` method and then redirect to the `index` 
+view.
